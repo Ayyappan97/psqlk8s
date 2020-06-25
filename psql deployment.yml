@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  selector:
+   matchLabels:
+    app: postgres
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:latest
+          imagePullPolicy: "IfNotPresent"
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+          volumeMounts:
+            - mountPath: /cache
+              name: postgredb
+      volumes:
+        - name: postgredb
+          persistentVolumeClaim:
+            claimName: postgres-pv-claim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+   app : postgres
+   type: hostpath
+  name: postgres-pv-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+--- 
+apiVersion: v1
+kind: Service
+metadata: 
+  labels: 
+    app: postgres
+  name: postgres
+spec: 
+  ports: 
+    - 
+      name: postgres
+      nodePort: 30432
+      port: 5432
+  selector: 
+    app: postgres
+  type: NodePort
+---
+--- 
+apiVersion: v1
+data: 
+  POSTGRES_DB: postgresdb
+  POSTGRES_PASSWORD: root
+  POSTGRES_USER: postgres
+kind: ConfigMap
+metadata: 
+  labels: 
+    app: postgres
+  name: postgres-config
